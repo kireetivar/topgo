@@ -7,9 +7,11 @@ import (
 	mem "github.com/kireetivar/topgo/memory"
 )
 
+type tickMsg time.Time
+
 type Model struct {
-	MemUsagePercent float64
-	Width           int
+	memUsagePercent float64
+	width           int
 }
 
 func (m Model) Init() tea.Cmd {
@@ -22,9 +24,24 @@ func doTick() tea.Cmd {
 	})
 }
 
+func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		if msg.String() == "q" || msg.String() == "ctrl+c" {
+			return m, tea.Quit
+		}
+	case tea.WindowSizeMsg:
+		m.width = msg.Width
+	case tickMsg:
+		m.memUsagePercent = mem.GetMemoryUsage()
+		return m, doTick()
+	}
+	return m, nil
+}
+
 func NewModel() Model {
 	return Model{
-		MemUsagePercent: mem.GetMemoryUsage(),
-		Width:           100,
+		memUsagePercent: mem.GetMemoryUsage(),
+		width:           100,
 	}
 }

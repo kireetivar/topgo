@@ -4,10 +4,7 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
-	mem "github.com/kireetivar/topgo/memory"
 )
-
-type tickMsg time.Time
 
 type Model struct {
 	memUsagePercent float64
@@ -15,7 +12,7 @@ type Model struct {
 }
 
 func (m Model) Init() tea.Cmd {
-	return doTick()
+	return tea.Batch(doTick(), fetchAllData())
 }
 
 func doTick() tea.Cmd {
@@ -33,15 +30,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 	case tickMsg:
-		m.memUsagePercent = mem.GetMemoryUsage()
+		return m, fetchAllData()
+	case dataMsg:
+		m.memUsagePercent = msg.memUsagePercent
 		return m, doTick()
 	}
 	return m, nil
 }
 
 func NewModel() Model {
-	return Model{
-		memUsagePercent: mem.GetMemoryUsage(),
-		width:           100,
-	}
+	return Model{}
 }

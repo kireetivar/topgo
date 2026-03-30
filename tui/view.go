@@ -46,6 +46,8 @@ func (m Model) View() string {
 
 	label := labelStyle.Render("Mem")
 	bar := renderBar(m.memUsagePercent, barWidth)
+	cpuLabel := labelStyle.Render("CPU")
+	cpuBar := renderBar(m.cpuUsagePercent, barWidth)
 	footer := footerStyle.Render("q: quit")
-	return fmt.Sprintf("%s [%s] %4.1f%%\n\n%s", label, bar, m.memUsagePercent, footer)
+	return fmt.Sprintf("%s [%s] %4.1f%%\n\n%s [%s] %4.1f%%\n\n%s", label, bar, m.memUsagePercent, cpuLabel, cpuBar, m.cpuUsagePercent, footer)
 }

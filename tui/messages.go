@@ -2,6 +2,7 @@ package tui
 
 import (
 	"time"
+
 	tea "github.com/charmbracelet/bubbletea"
 	mem "github.com/kireetivar/topgo/memory"
 )
@@ -9,13 +10,15 @@ import (
 type tickMsg time.Time
 
 type dataMsg struct {
-	memUsagePercent	float64
+	memUsagePercent float64
+	cpuUsagePercent float64
 }
 
-func fetchAllData() tea.Cmd {
+func (m Model) fetchAllData() tea.Cmd {
 	return func() tea.Msg {
-		return  dataMsg {
-			memUsagePercent : mem.GetMemoryUsage(),
+		return dataMsg{
+			memUsagePercent: mem.GetMemoryUsage(),
+			cpuUsagePercent: m.cpuStat.GetCPUUsage(),
 		}
 	}
 }

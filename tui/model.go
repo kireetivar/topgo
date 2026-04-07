@@ -12,6 +12,7 @@ type Model struct {
 	cpuUsagePercent float64
 	width           int
 	cpuStat         *cpu.CPUStat
+	err             error
 }
 
 func (m Model) Init() tea.Cmd {
@@ -38,6 +39,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case dataMsg:
 		m.memUsagePercent = msg.memUsagePercent
 		m.cpuUsagePercent = msg.cpuUsagePercent
+		return m, doTick()
+	case errMsg:
+		m.err = msg.err
 		return m, doTick()
 	}
 	return m, nil

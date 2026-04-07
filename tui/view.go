@@ -43,7 +43,9 @@ func (m Model) View() string {
 	if barWidth < 10 {
 		barWidth = 10
 	}
-
+	if m.err != nil {
+		return m.err.Error()
+	}
 	label := labelStyle.Render("Mem")
 	bar := renderBar(m.memUsagePercent, barWidth)
 	cpuLabel := labelStyle.Render("CPU")

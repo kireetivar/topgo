@@ -1,16 +1,16 @@
-package mem
+package memory
 
-import "fmt"
-import "os"
-import "bufio"
-import "strings"
-import "strconv"
+import (
+	"os"
+	"bufio"
+	"strings"
+	"strconv"
+)
 
-func GetMemoryUsage() float64 {
+func GetMemoryUsage() (float64, error) {
 	file, err := os.Open("/proc/meminfo")
 	if err != nil {
-		fmt.Println("Error while opening file: ", err)
-		return 0
+		return 0, err
 	}
 	defer file.Close()
 	var memTotal, memAvailable int
@@ -22,16 +22,14 @@ func GetMemoryUsage() float64 {
 			parts := strings.Fields(line)
 			memTotal, err = strconv.Atoi(parts[1])
 			if err != nil {
-				fmt.Println("Error while converting str to int: ", err)
-				return 0
+				return 0, err
 			}
 		}
 		if strings.HasPrefix(line, "MemAvailable:") {
 			parts := strings.Fields(line)
 			memAvailable, err = strconv.Atoi(parts[1])
 			if err != nil {
-				fmt.Println("Error while conerting str to int: ", err)
-				return 0
+				return 0, err
 			}
 		}
 		if memTotal > 0 && memAvailable > 0 {
@@ -39,5 +37,5 @@ func GetMemoryUsage() float64 {
 			break
 		}
 	}
-	return (memUsage / float64(memTotal)) * 100
+	return (memUsage / float64(memTotal)) * 100, nil
 }

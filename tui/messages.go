@@ -4,7 +4,7 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
-	mem "github.com/kireetivar/topgo/memory"
+	"github.com/kireetivar/topgo/memory"
 )
 
 type tickMsg time.Time
@@ -14,11 +14,21 @@ type dataMsg struct {
 	cpuUsagePercent float64
 }
 
+type errMsg struct{ err error }
+
 func (m Model) fetchAllData() tea.Cmd {
 	return func() tea.Msg {
+		memUsage, err := memory.GetMemoryUsage()
+		if err != nil {
+			return errMsg{err: err}
+		}
+		cpuUsage, err := m.cpuStat.GetCPUUsage()
+		if err != nil {
+			return errMsg{err: err}
+		}
 		return dataMsg{
-			memUsagePercent: mem.GetMemoryUsage(),
-			cpuUsagePercent: m.cpuStat.GetCPUUsage(),
+			memUsagePercent: memUsage,
+			cpuUsagePercent: cpuUsage,
 		}
 	}
 }

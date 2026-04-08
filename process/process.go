@@ -1,6 +1,7 @@
 package process
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"strconv"
@@ -25,9 +26,10 @@ func GetProcessList() ([]Process, error) {
 			pid, err := strconv.ParseInt(item.Name(), 10, 64)
 			if err == nil {
 				proc, err := readProcessInfo(pid)
-				if err == nil {
-					processes = append(processes, proc)
+				if err != nil {
+					continue
 				}
+				processes = append(processes, proc)
 			}
 		}
 	}
@@ -35,22 +37,35 @@ func GetProcessList() ([]Process, error) {
 }
 
 func readProcessInfo(pid int64) (Process, error) {
-	stat, err := os.ReadFile(fmt.Sprintf("/proc/%d/stat", pid))
+	file, err := os.Open(fmt.Sprintf("/proc/%d/status", pid))
 	if err != nil {
 		return Process{}, err
 	}
-	fields := strings.Fields(string(stat))
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+
 	var name string
 	var mem float64
-	for i, field := range fields {
-		if i == 1 {
-			name = strings.Trim(field, "()")
+	var foundMem bool // Kernel threads don't have VmRSS
+	for scanner.Scan() {
+		fields := strings.Fields(scanner.Text())
+		if len(fields) < 2 {
+			continue
 		}
-		if i == 23 {
-			parsed, err := strconv.ParseFloat(field, 64)
+
+		if strings.HasPrefix(scanner.Text(), "Name:") {
+			name = fields[1]
+		}
+		if strings.HasPrefix(scanner.Text(), "VmRSS:") { // Current Resident Set Size (how much physical RAM the process is currently using).
+			parsed, err := strconv.ParseFloat(fields[1], 64)
 			if err == nil {
 				mem = parsed
+				foundMem = true
 			}
+		}
+		if name != "" && foundMem {
+			break
 		}
 	}
 	return Process{PID: pid, Name: name, Mem: mem / 1024}, nil

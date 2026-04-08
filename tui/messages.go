@@ -5,6 +5,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/kireetivar/topgo/memory"
+	"github.com/kireetivar/topgo/process"
 )
 
 type tickMsg time.Time
@@ -12,6 +13,7 @@ type tickMsg time.Time
 type dataMsg struct {
 	memUsagePercent float64
 	cpuUsagePercent float64
+	processes       []process.Process
 }
 
 type errMsg struct{ err error }
@@ -26,9 +28,14 @@ func (m Model) fetchAllData() tea.Cmd {
 		if err != nil {
 			return errMsg{err: err}
 		}
+		processes, err := process.GetProcessList()
+		if err != nil {
+			return errMsg{err: err}
+		}
 		return dataMsg{
 			memUsagePercent: memUsage,
 			cpuUsagePercent: cpuUsage,
+			processes:       processes,
 		}
 	}
 }

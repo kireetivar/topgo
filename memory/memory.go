@@ -1,10 +1,10 @@
 package memory
 
 import (
-	"os"
 	"bufio"
-	"strings"
+	"os"
 	"strconv"
+	"strings"
 )
 
 func GetMemoryUsage() (float64, error) {

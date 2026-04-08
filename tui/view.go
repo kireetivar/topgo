@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	lipgloss "github.com/charmbracelet/lipgloss"
+	"github.com/kireetivar/topgo/process"
 )
 
 var (
@@ -38,6 +39,15 @@ func renderBar(percent float64, width int) string {
 	return filledBar + emptyBar
 }
 
+func renderProcessTable(processes []process.Process) string {
+	var builder strings.Builder
+	fmt.Fprintf(&builder, "%-10s %-20s %-10s %-10s\n", "PID", "Name", "CPU", "MEM")
+	for _, proc := range processes {
+		fmt.Fprintf(&builder, "%-10d %-20s %-10.1f %10.1f\n", proc.PID, proc.Name, proc.CPU, proc.Mem)
+	}
+	return builder.String()
+}
+
 func (m Model) View() string {
 	barWidth := m.width - 12
 	if barWidth < 10 {
@@ -50,6 +60,14 @@ func (m Model) View() string {
 	bar := renderBar(m.memUsagePercent, barWidth)
 	cpuLabel := labelStyle.Render("CPU")
 	cpuBar := renderBar(m.cpuUsagePercent, barWidth)
+	header := fmt.Sprintf("%s [%s] %4.1f%%\n\n%s [%s] %4.1f%%", label, bar, m.memUsagePercent, cpuLabel, cpuBar, m.cpuUsagePercent)
+	visibleRows := m.height - 6
+	var processTable string
+	if visibleRows > 0 && len(m.processes) > 0 && m.offset+visibleRows <= len(m.processes) {
+		processTable = renderProcessTable(m.processes[m.offset : m.offset+visibleRows])
+	} else if visibleRows > 0 && len(m.processes) > 0 {
+		processTable = renderProcessTable(m.processes[m.offset:])
+	}
 	footer := footerStyle.Render("q: quit")
-	return fmt.Sprintf("%s [%s] %4.1f%%\n\n%s [%s] %4.1f%%\n\n%s", label, bar, m.memUsagePercent, cpuLabel, cpuBar, m.cpuUsagePercent, footer)
+	return lipgloss.JoinVertical(lipgloss.Left, header, processTable, footer)
 }

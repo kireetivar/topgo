@@ -5,13 +5,17 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/kireetivar/topgo/cpu"
+	"github.com/kireetivar/topgo/process"
 )
 
 type Model struct {
 	memUsagePercent float64
 	cpuUsagePercent float64
 	width           int
+	height          int
+	offset          int
 	cpuStat         *cpu.CPUStat
+	processes       []process.Process
 	err             error
 }
 
@@ -28,17 +32,28 @@ func doTick() tea.Cmd {
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		if msg.String() == "q" || msg.String() == "ctrl+c" {
+		switch msg.String() {
+		case "q", "ctrl+c":
 			return m, tea.Quit
+		case "down", "j":
+			if m.offset < len(m.processes)-m.height {
+				m.offset++
+			}
+		case "up", "k":
+			if m.offset > 0 {
+				m.offset--
+			}
 		}
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
+		m.height = msg.Height
 	case tickMsg:
 		_ = msg
 		return m, m.fetchAllData()
 	case dataMsg:
 		m.memUsagePercent = msg.memUsagePercent
 		m.cpuUsagePercent = msg.cpuUsagePercent
+		m.processes = msg.processes
 		return m, doTick()
 	case errMsg:
 		m.err = msg.err

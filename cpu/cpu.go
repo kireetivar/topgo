@@ -24,7 +24,7 @@ func (c *CPUStat) GetCPUUsage() (float64, error) {
 	for scanner.Scan() {
 		line := scanner.Text()
 		fields := strings.Fields(line)
-		if fields[0] != "cpu" {
+		if len(fields) == 0 || fields[0] != "cpu" {
 			continue
 		}
 

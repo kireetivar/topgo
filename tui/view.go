@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	lipgloss "github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/kireetivar/topgo/process"
 )
 
@@ -41,9 +41,9 @@ func renderBar(percent float64, width int) string {
 
 func renderProcessTable(processes []process.Process) string {
 	var builder strings.Builder
-	fmt.Fprintf(&builder, "%-10s %-20s %-10s %-10s\n", "PID", "Name", "CPU", "MEM")
+	fmt.Fprintf(&builder, "%-10s %-20s %10s %10s\n", "PID", "Name", "CPU", "MEM")
 	for _, proc := range processes {
-		fmt.Fprintf(&builder, "%-10d %-20s %-10.1f %10.1f\n", proc.PID, proc.Name, proc.CPU, proc.Mem)
+		fmt.Fprintf(&builder, "%-10d %-20s %10.1f %10.1f\n", proc.PID, proc.Name, proc.CPU, proc.Mem)
 	}
 	return builder.String()
 }
@@ -61,7 +61,7 @@ func (m Model) View() string {
 	cpuLabel := labelStyle.Render("CPU")
 	cpuBar := renderBar(m.cpuUsagePercent, barWidth)
 	header := fmt.Sprintf("%s [%s] %4.1f%%\n\n%s [%s] %4.1f%%", label, bar, m.memUsagePercent, cpuLabel, cpuBar, m.cpuUsagePercent)
-	visibleRows := m.height - 6
+	visibleRows := m.getVisibleRows()
 	var processTable string
 	if visibleRows > 0 && len(m.processes) > 0 && m.offset+visibleRows <= len(m.processes) {
 		processTable = renderProcessTable(m.processes[m.offset : m.offset+visibleRows])

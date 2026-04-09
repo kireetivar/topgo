@@ -36,7 +36,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "q", "ctrl+c":
 			return m, tea.Quit
 		case "down", "j":
-			if m.offset < len(m.processes)-m.height {
+			visibleRows := m.getVisibleRows()
+			if m.offset < len(m.processes)-visibleRows {
 				m.offset++
 			}
 		case "up", "k":
@@ -48,18 +49,25 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width = msg.Width
 		m.height = msg.Height
 	case tickMsg:
-		_ = msg
 		return m, m.fetchAllData()
 	case dataMsg:
 		m.memUsagePercent = msg.memUsagePercent
 		m.cpuUsagePercent = msg.cpuUsagePercent
 		m.processes = msg.processes
+		maxOffset := max(len(m.processes)-m.getVisibleRows(), 0)
+		if m.offset > maxOffset {
+			m.offset = maxOffset
+		}
 		return m, doTick()
 	case errMsg:
 		m.err = msg.err
 		return m, doTick()
 	}
 	return m, nil
+}
+
+func (m Model) getVisibleRows() int {
+	return m.height - 6
 }
 
 func NewModel() Model {

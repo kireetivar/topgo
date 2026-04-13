@@ -16,6 +16,7 @@ type Model struct {
 	offset          int
 	cpuStat         *cpu.CPUStat
 	processes       []process.Process
+	processTracker  *process.ProcessTracker
 	err             error
 }
 
@@ -75,5 +76,6 @@ func NewModel() Model {
 		memUsagePercent: 0,
 		cpuUsagePercent: 0,
 		cpuStat:         &cpu.CPUStat{},
+		processTracker:  process.NewProcessTracker(),
 	}
 }

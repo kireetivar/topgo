@@ -6,6 +6,8 @@ import (
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/kireetivar/topgo/cpu"
 )
 
 type Process struct {
@@ -15,12 +17,26 @@ type Process struct {
 	Mem  float64
 }
 
-func GetProcessList() ([]Process, error) {
+type ProcessTracker struct {
+	prevTicks    map[int64]float64 // PID -> previous utime+stime
+	prevCPUTotal float64           // prev total CPU from /proc/stat
+}
+
+func (pt *ProcessTracker) GetProcessList() ([]Process, error) {
+
+	curCPUTotal, _, err := cpu.ReadTotalCPUTicks()
+	if err != nil {
+		return nil, err
+	}
+	deltaTotal := curCPUTotal - pt.prevCPUTotal
+
 	items, err := os.ReadDir("/proc")
 	if err != nil {
 		return nil, err
 	}
 	var processes []Process
+	currentPIDs := make(map[int64]bool) //delete stale pids
+
 	for _, item := range items {
 		if item.IsDir() {
 			pid, err := strconv.ParseInt(item.Name(), 10, 64)
@@ -29,8 +45,26 @@ func GetProcessList() ([]Process, error) {
 				if err != nil {
 					continue
 				}
+				cpuTicks, err := readProcessCPUTicks(pid)
+				if err != nil {
+					continue
+				}
+
+				if i, ok := pt.prevTicks[pid]; ok && deltaTotal > 0 {
+					proc.CPU = ((cpuTicks - i) / (deltaTotal)) * 100
+				}
+
+				pt.prevTicks[pid] = cpuTicks
+				currentPIDs[pid] = true
+
 				processes = append(processes, proc)
 			}
+		}
+	}
+	pt.prevCPUTotal = curCPUTotal
+	for pid := range pt.prevTicks {
+		if !currentPIDs[pid] {
+			delete(pt.prevTicks, pid)
 		}
 	}
 	return processes, nil
@@ -69,4 +103,43 @@ func readProcessInfo(pid int64) (Process, error) {
 		}
 	}
 	return Process{PID: pid, Name: name, Mem: mem / 1024}, nil
+}
+
+func readProcessCPUTicks(pid int64) (float64, error) {
+	b, err := os.ReadFile(fmt.Sprintf("/proc/%d/stat", pid))
+	if err != nil {
+		return 0, err
+	}
+	s := string(b)
+
+	// Process name can contain spaces
+	index := strings.LastIndex(s, ")")
+	if index == -1 {
+		return 0, fmt.Errorf("malformed stat for pid %d", pid)
+	}
+
+	rest := s[index+1:]
+
+	fields := strings.Fields(rest)
+	if len(fields) < 13 {
+		return 0, fmt.Errorf("malformed stat for pid %d", pid)
+	}
+
+	utime, err := strconv.ParseFloat(fields[11], 64)
+	if err != nil {
+		return 0, err
+	}
+
+	stime, err := strconv.ParseFloat(fields[12], 64)
+	if err != nil {
+		return 0, err
+	}
+
+	return utime + stime, nil
+}
+
+func NewProcessTracker() *ProcessTracker {
+	return &ProcessTracker{
+		prevTicks: make(map[int64]float64),
+	}
 }

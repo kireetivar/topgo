@@ -28,7 +28,7 @@ func (m Model) fetchAllData() tea.Cmd {
 		if err != nil {
 			return errMsg{err: err}
 		}
-		processes, err := process.GetProcessList()
+		processes, err := m.processTracker.GetProcessList()
 		if err != nil {
 			return errMsg{err: err}
 		}

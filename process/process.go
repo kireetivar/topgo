@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -67,6 +68,9 @@ func (pt *ProcessTracker) GetProcessList() ([]Process, error) {
 			delete(pt.prevTicks, pid)
 		}
 	}
+	sort.Slice(processes, func(i, j int) bool {
+		return processes[i].CPU > processes[j].CPU
+	})
 	return processes, nil
 }
 

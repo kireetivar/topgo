@@ -13,12 +13,7 @@ type CPUStat struct {
 	prevTotal float64
 }
 
-func (c *CPUStat) GetCPUUsage() (float64, error) {
-	curtotal, curidle, err := ReadTotalCPUTicks()
-	if err != nil {
-		return 0, err
-	}
-
+func (c *CPUStat) GetCPUUsage(curtotal float64, curidle float64) (float64, error) {
 	if c.prevTotal == 0 {
 		c.prevIdle = curidle
 		c.prevTotal = curtotal

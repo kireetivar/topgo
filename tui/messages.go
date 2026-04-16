@@ -4,6 +4,7 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/kireetivar/topgo/cpu"
 	"github.com/kireetivar/topgo/memory"
 	"github.com/kireetivar/topgo/process"
 )
@@ -24,11 +25,15 @@ func (m Model) fetchAllData() tea.Cmd {
 		if err != nil {
 			return errMsg{err: err}
 		}
-		cpuUsage, err := m.cpuStat.GetCPUUsage()
+		curtotal, curidle, err := cpu.ReadTotalCPUTicks()
 		if err != nil {
 			return errMsg{err: err}
 		}
-		processes, err := m.processTracker.GetProcessList()
+		cpuUsage, err := m.cpuStat.GetCPUUsage(curtotal, curidle)
+		if err != nil {
+			return errMsg{err: err}
+		}
+		processes, err := m.processTracker.GetProcessList(curtotal)
 		if err != nil {
 			return errMsg{err: err}
 		}

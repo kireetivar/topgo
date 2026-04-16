@@ -7,8 +7,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-
-	"github.com/kireetivar/topgo/cpu"
 )
 
 type Process struct {
@@ -23,12 +21,7 @@ type ProcessTracker struct {
 	prevCPUTotal float64           // prev total CPU from /proc/stat
 }
 
-func (pt *ProcessTracker) GetProcessList() ([]Process, error) {
-
-	curCPUTotal, _, err := cpu.ReadTotalCPUTicks()
-	if err != nil {
-		return nil, err
-	}
+func (pt *ProcessTracker) GetProcessList(curCPUTotal float64) ([]Process, error) {
 	deltaTotal := curCPUTotal - pt.prevCPUTotal
 
 	items, err := os.ReadDir("/proc")

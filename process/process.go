@@ -1,7 +1,6 @@
 package process
 
 import (
-	"bufio"
 	"fmt"
 	"os"
 	"sort"
@@ -10,10 +9,12 @@ import (
 )
 
 type Process struct {
-	PID  int64
-	Name string
-	CPU  float64
-	Mem  float64
+	PID        int64
+	Name       string
+	State      string
+	CPU        float64
+	Mem        float64
+	NumThreads int
 }
 
 type ProcessTracker struct {
@@ -28,6 +29,8 @@ const (
 	SortByMem
 )
 
+var pageSize = os.Getpagesize()
+
 func (pt *ProcessTracker) GetProcessList(curCPUTotal float64, sortBy SortBy) ([]Process, error) {
 	deltaTotal := curCPUTotal - pt.prevCPUTotal
 
@@ -35,18 +38,14 @@ func (pt *ProcessTracker) GetProcessList(curCPUTotal float64, sortBy SortBy) ([]
 	if err != nil {
 		return nil, err
 	}
-	processes := make([]Process, 0,len(items))
+	processes := make([]Process, 0, len(items))
 	currentPIDs := make(map[int64]bool) //delete stale pids
 
 	for _, item := range items {
 		if item.IsDir() {
 			pid, err := strconv.ParseInt(item.Name(), 10, 64)
 			if err == nil {
-				proc, err := readProcessInfo(pid)
-				if err != nil {
-					continue
-				}
-				cpuTicks, err := readProcessCPUTicks(pid)
+				proc, cpuTicks, err := readProcess(pid)
 				if err != nil {
 					continue
 				}
@@ -79,73 +78,61 @@ func (pt *ProcessTracker) GetProcessList(curCPUTotal float64, sortBy SortBy) ([]
 	return processes, nil
 }
 
-func readProcessInfo(pid int64) (Process, error) {
-	file, err := os.Open(fmt.Sprintf("/proc/%d/status", pid))
-	if err != nil {
-		return Process{}, err
-	}
-	defer file.Close()
+func readProcess(pid int64) (Process, float64, error) {
 
-	scanner := bufio.NewScanner(file)
-
-	var name string
-	var mem float64
-	var foundMem bool // Kernel threads don't have VmRSS
-	for scanner.Scan() {
-		fields := strings.Fields(scanner.Text())
-		if len(fields) < 2 {
-			continue
-		}
-		line := scanner.Text()
-
-		if strings.HasPrefix(line, "Name:") {
-			name = fields[1]
-		}
-		if strings.HasPrefix(line, "VmRSS:") { // Current Resident Set Size (how much physical RAM the process is currently using).
-			parsed, err := strconv.ParseFloat(fields[1], 64)
-			if err == nil {
-				mem = parsed
-				foundMem = true
-			}
-		}
-		if name != "" && foundMem {
-			break
-		}
-	}
-	return Process{PID: pid, Name: name, Mem: mem / 1024}, nil
-}
-
-func readProcessCPUTicks(pid int64) (float64, error) {
 	b, err := os.ReadFile(fmt.Sprintf("/proc/%d/stat", pid))
 	if err != nil {
-		return 0, err
+		return Process{}, 0, err
 	}
 	s := string(b)
 
 	// Process name can contain spaces
-	index := strings.LastIndex(s, ")")
-	if index == -1 {
-		return 0, fmt.Errorf("malformed stat for pid %d", pid)
+	endIndex := strings.LastIndex(s, ")")
+	if endIndex == -1 {
+		return Process{}, 0, fmt.Errorf("malformed stat for pid %d", pid)
 	}
+	startIndex := strings.Index(s, "(")
+	if startIndex == -1 {
+		return Process{}, 0, fmt.Errorf("malformed stat for pid %d", pid)
+	}
+	name := string(s[startIndex+1 : endIndex])
 
-	rest := s[index+1:]
+	rest := s[endIndex+1:]
 
 	fields := strings.Fields(rest)
-	if len(fields) < 13 {
-		return 0, fmt.Errorf("malformed stat for pid %d", pid)
+	if len(fields) < 22 {
+		return Process{}, 0, fmt.Errorf("malformed stat for pid %d", pid)
 	}
+
+	state := fields[0]
 
 	utime, err := strconv.ParseFloat(fields[11], 64)
 	if err != nil {
-		return 0, err
+		return Process{}, 0, err
 	}
 
 	stime, err := strconv.ParseFloat(fields[12], 64)
 	if err != nil {
-		return 0, err
+		return Process{}, 0, err
 	}
 
-	return utime + stime, nil
+	threads, err := strconv.Atoi(fields[17])
+	if err != nil {
+		return Process{}, 0, err
+	}
+
+	rss, err := strconv.ParseFloat(fields[21], 64)
+	if err != nil {
+		return Process{}, 0, err
+	}
+
+	return Process{
+		PID:        pid,
+		Name:       name,
+		State:      state,
+		NumThreads: threads,
+		Mem:        rss * float64(pageSize) / 1024 / 1024,
+	}, utime + stime, nil
 }
 
 func NewProcessTracker() *ProcessTracker {

@@ -65,7 +65,7 @@ func (m Model) View() string {
 	cpuBar := renderBar(m.cpuUsagePercent, barWidth)
 	cpuStats := fmt.Sprintf("%-16s", fmt.Sprintf("%.1f%%", m.cpuUsagePercent))
 
-	header := fmt.Sprintf("%s [%s] %s\n%s [%s] %s", label, bar, memStats, cpuLabel, cpuBar, cpuStats)
+	header := fmt.Sprintf("%s [%s] %s\n\n%s [%s] %s", label, bar, memStats, cpuLabel, cpuBar, cpuStats)
 	visibleRows := m.getVisibleRows()
 	tableHeader := fmt.Sprintf("%-10s %-20s %10s %10s", "PID", "Name", "CPU", "MEM")
 	var processTable string

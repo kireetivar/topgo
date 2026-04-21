@@ -75,7 +75,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) getVisibleRows() int {
-	return m.height - 6
+	return m.height - 7
 }
 
 func NewModel() Model {

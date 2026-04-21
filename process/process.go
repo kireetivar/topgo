@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 type Process struct {
@@ -20,6 +21,12 @@ type Process struct {
 type ProcessTracker struct {
 	prevTicks    map[int64]float64 // PID -> previous utime+stime
 	prevCPUTotal float64           // prev total CPU from /proc/stat
+}
+
+type procResult struct {
+	proc     Process
+	cpuTicks float64
+	pid      int64
 }
 
 type SortBy int
@@ -41,26 +48,51 @@ func (pt *ProcessTracker) GetProcessList(curCPUTotal float64, sortBy SortBy) ([]
 	processes := make([]Process, 0, len(items))
 	currentPIDs := make(map[int64]bool) //delete stale pids
 
+	var pids []int64
 	for _, item := range items {
-		if item.IsDir() {
-			pid, err := strconv.ParseInt(item.Name(), 10, 64)
-			if err == nil {
-				proc, cpuTicks, err := readProcess(pid)
-				if err != nil {
-					continue
-				}
-
-				if i, ok := pt.prevTicks[pid]; ok && deltaTotal > 0 {
-					proc.CPU = ((cpuTicks - i) / (deltaTotal)) * 100
-				}
-
-				pt.prevTicks[pid] = cpuTicks
-				currentPIDs[pid] = true
-
-				processes = append(processes, proc)
-			}
+		if !item.IsDir() {
+			continue
 		}
+		pid, err := strconv.ParseInt(item.Name(), 10, 64)
+		if err != nil {
+			continue
+		}
+		pids = append(pids, pid)
 	}
+
+	resultCh := make(chan procResult, len(pids))
+	var wg sync.WaitGroup
+
+	for _, pid := range pids {
+		wg.Add(1)
+		go func(pid int64) {
+			defer wg.Done()
+
+			proc, cputicks, err := readProcess(pid)
+			if err != nil {
+				return //process died - skip silently
+			}
+			resultCh <- procResult{proc: proc, cpuTicks: cputicks, pid: pid}
+		}(pid)
+	}
+
+	go func() {
+		wg.Wait()
+		close(resultCh)
+	}()
+
+	for result := range resultCh {
+
+		if i, ok := pt.prevTicks[result.pid]; ok && deltaTotal > 0 {
+			result.proc.CPU = ((result.cpuTicks - i) / (deltaTotal)) * 100
+		}
+
+		pt.prevTicks[result.pid] = result.cpuTicks
+		currentPIDs[result.pid] = true
+
+		processes = append(processes, result.proc)
+	}
+
 	pt.prevCPUTotal = curCPUTotal
 	for pid := range pt.prevTicks {
 		if !currentPIDs[pid] {

@@ -34,7 +34,7 @@ func (m Model) fetchAllData() tea.Cmd {
 		if err != nil {
 			return errMsg{err: err}
 		}
-		processes, err := m.processTracker.GetProcessList(curtotal)
+		processes, err := m.processTracker.GetProcessList(curtotal, m.sortBy)
 		if err != nil {
 			return errMsg{err: err}
 		}

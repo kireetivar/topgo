@@ -74,6 +74,10 @@ func (m Model) View() string {
 	} else if visibleRows > 0 && len(m.processes) > 0 {
 		processTable = renderProcessTable(m.processes[m.offset:])
 	}
-	footer := footerStyle.Render("q: quit")
+	sortIndicator := "cpu"
+	if m.sortBy == process.SortByMem {
+		sortIndicator = "mem"
+	}
+	footer := footerStyle.Render(fmt.Sprintf("q: quit  c/m: sort by [%s]", sortIndicator))
 	return lipgloss.JoinVertical(lipgloss.Left, header, tableHeader, processTable, footer)
 }

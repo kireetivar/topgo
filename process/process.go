@@ -21,7 +21,14 @@ type ProcessTracker struct {
 	prevCPUTotal float64           // prev total CPU from /proc/stat
 }
 
-func (pt *ProcessTracker) GetProcessList(curCPUTotal float64) ([]Process, error) {
+type SortBy int
+
+const (
+	SortByCPU SortBy = iota
+	SortByMem
+)
+
+func (pt *ProcessTracker) GetProcessList(curCPUTotal float64, sortBy SortBy) ([]Process, error) {
 	deltaTotal := curCPUTotal - pt.prevCPUTotal
 
 	items, err := os.ReadDir("/proc")
@@ -62,7 +69,12 @@ func (pt *ProcessTracker) GetProcessList(curCPUTotal float64) ([]Process, error)
 		}
 	}
 	sort.Slice(processes, func(i, j int) bool {
-		return processes[i].CPU > processes[j].CPU
+		switch sortBy {
+		case SortByMem:
+			return processes[i].Mem > processes[j].Mem
+		default:
+			return processes[i].CPU > processes[j].CPU
+		}
 	})
 	return processes, nil
 }

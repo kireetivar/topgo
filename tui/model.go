@@ -18,6 +18,7 @@ type Model struct {
 	cpuStat         *cpu.CPUStat
 	processes       []process.Process
 	processTracker  *process.ProcessTracker
+	sortBy          process.SortBy
 	err             error
 }
 
@@ -46,6 +47,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.offset > 0 {
 				m.offset--
 			}
+		case "c":
+			m.sortBy = process.SortByCPU
+		case "m":
+			m.sortBy = process.SortByMem
 		}
 	case tea.WindowSizeMsg:
 		m.width = msg.Width

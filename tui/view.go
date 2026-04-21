@@ -41,7 +41,6 @@ func renderBar(percent float64, width int) string {
 
 func renderProcessTable(processes []process.Process) string {
 	var builder strings.Builder
-	fmt.Fprintf(&builder, "%-10s %-20s %10s %10s\n", "PID", "Name", "CPU", "MEM")
 	for _, proc := range processes {
 		fmt.Fprintf(&builder, "%-10d %-20s %10.1f %10.1f\n", proc.PID, proc.Name, proc.CPU, proc.Mem)
 	}
@@ -49,7 +48,8 @@ func renderProcessTable(processes []process.Process) string {
 }
 
 func (m Model) View() string {
-	barWidth := m.width - 12
+	statsWidth := 16
+	barWidth := m.width - 6 - statsWidth // 6 = label(3) + " [" + "] "
 	if barWidth < 10 {
 		barWidth = 10
 	}
@@ -58,10 +58,16 @@ func (m Model) View() string {
 	}
 	label := labelStyle.Render("Mem")
 	bar := renderBar(m.memUsagePercent, barWidth)
+	usedMemory := (m.memUsagePercent / 100) * m.totalMemory
+	memStats := fmt.Sprintf("%-16s", fmt.Sprintf("%.1f/%.1f GB", usedMemory, m.totalMemory))
+
 	cpuLabel := labelStyle.Render("CPU")
 	cpuBar := renderBar(m.cpuUsagePercent, barWidth)
-	header := fmt.Sprintf("%s [%s] %4.1f%%\n\n%s [%s] %4.1f%%", label, bar, m.memUsagePercent, cpuLabel, cpuBar, m.cpuUsagePercent)
+	cpuStats := fmt.Sprintf("%-16s", fmt.Sprintf("%.1f%%", m.cpuUsagePercent))
+
+	header := fmt.Sprintf("%s [%s] %s\n%s [%s] %s", label, bar, memStats, cpuLabel, cpuBar, cpuStats)
 	visibleRows := m.getVisibleRows()
+	tableHeader := fmt.Sprintf("%-10s %-20s %10s %10s", "PID", "Name", "CPU", "MEM")
 	var processTable string
 	if visibleRows > 0 && len(m.processes) > 0 && m.offset+visibleRows <= len(m.processes) {
 		processTable = renderProcessTable(m.processes[m.offset : m.offset+visibleRows])
@@ -69,5 +75,5 @@ func (m Model) View() string {
 		processTable = renderProcessTable(m.processes[m.offset:])
 	}
 	footer := footerStyle.Render("q: quit")
-	return lipgloss.JoinVertical(lipgloss.Left, header, processTable, footer)
+	return lipgloss.JoinVertical(lipgloss.Left, header, tableHeader, processTable, footer)
 }

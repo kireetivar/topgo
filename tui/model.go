@@ -11,6 +11,7 @@ import (
 type Model struct {
 	memUsagePercent float64
 	cpuUsagePercent float64
+	totalMemory     float64
 	width           int
 	height          int
 	offset          int
@@ -54,6 +55,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case dataMsg:
 		m.memUsagePercent = msg.memUsagePercent
 		m.cpuUsagePercent = msg.cpuUsagePercent
+		m.totalMemory = msg.totalMemory
 		m.processes = msg.processes
 		maxOffset := max(len(m.processes)-m.getVisibleRows(), 0)
 		if m.offset > maxOffset {

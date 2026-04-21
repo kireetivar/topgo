@@ -14,6 +14,7 @@ type tickMsg time.Time
 type dataMsg struct {
 	memUsagePercent float64
 	cpuUsagePercent float64
+	totalMemory     float64
 	processes       []process.Process
 }
 
@@ -21,7 +22,7 @@ type errMsg struct{ err error }
 
 func (m Model) fetchAllData() tea.Cmd {
 	return func() tea.Msg {
-		memUsage, err := memory.GetMemoryUsage()
+		memUsage, memTotal, err := memory.GetMemoryUsage()
 		if err != nil {
 			return errMsg{err: err}
 		}
@@ -40,6 +41,7 @@ func (m Model) fetchAllData() tea.Cmd {
 		return dataMsg{
 			memUsagePercent: memUsage,
 			cpuUsagePercent: cpuUsage,
+			totalMemory:     memTotal,
 			processes:       processes,
 		}
 	}

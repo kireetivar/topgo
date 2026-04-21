@@ -59,7 +59,7 @@ func (m Model) View() string {
 	label := labelStyle.Render("Mem")
 	bar := renderBar(m.memUsagePercent, barWidth)
 	usedMemory := (m.memUsagePercent / 100) * m.totalMemory
-	memStats := fmt.Sprintf("%-16s", fmt.Sprintf("%.1f/%.1f GB", usedMemory, m.totalMemory))
+	memStats := fmt.Sprintf("%.1f/%.1f GB", usedMemory, m.totalMemory)
 
 	cpuLabel := labelStyle.Render("CPU")
 	cpuBar := renderBar(m.cpuUsagePercent, barWidth)

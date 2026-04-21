@@ -23,7 +23,7 @@ type Model struct {
 }
 
 func (m Model) Init() tea.Cmd {
-	return doTick()
+	return m.fetchAllData()
 }
 
 func doTick() tea.Cmd {
@@ -80,9 +80,7 @@ func (m Model) getVisibleRows() int {
 
 func NewModel() Model {
 	return Model{
-		memUsagePercent: 0,
-		cpuUsagePercent: 0,
-		cpuStat:         &cpu.CPUStat{},
-		processTracker:  process.NewProcessTracker(),
+		cpuStat:        &cpu.CPUStat{},
+		processTracker: process.NewProcessTracker(),
 	}
 }

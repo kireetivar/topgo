@@ -96,11 +96,12 @@ func readProcessInfo(pid int64) (Process, error) {
 		if len(fields) < 2 {
 			continue
 		}
+		line := scanner.Text()
 
-		if strings.HasPrefix(scanner.Text(), "Name:") {
+		if strings.HasPrefix(line, "Name:") {
 			name = fields[1]
 		}
-		if strings.HasPrefix(scanner.Text(), "VmRSS:") { // Current Resident Set Size (how much physical RAM the process is currently using).
+		if strings.HasPrefix(line, "VmRSS:") { // Current Resident Set Size (how much physical RAM the process is currently using).
 			parsed, err := strconv.ParseFloat(fields[1], 64)
 			if err == nil {
 				mem = parsed

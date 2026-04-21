@@ -35,7 +35,7 @@ func (pt *ProcessTracker) GetProcessList(curCPUTotal float64, sortBy SortBy) ([]
 	if err != nil {
 		return nil, err
 	}
-	var processes []Process
+	processes := make([]Process, 0,len(items))
 	currentPIDs := make(map[int64]bool) //delete stale pids
 
 	for _, item := range items {

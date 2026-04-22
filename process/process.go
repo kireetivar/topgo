@@ -16,11 +16,13 @@ type Process struct {
 	CPU        float64
 	Mem        float64
 	NumThreads int
+	Cmd        string
 }
 
 type ProcessTracker struct {
 	prevTicks    map[int64]float64 // PID -> previous utime+stime
 	prevCPUTotal float64           // prev total CPU from /proc/stat
+	cmdCache     map[int64]string  // ← new: PID → cmdline
 }
 
 type procResult struct {
@@ -64,16 +66,31 @@ func (pt *ProcessTracker) GetProcessList(curCPUTotal float64, sortBy SortBy) ([]
 	var wg sync.WaitGroup
 
 	for _, pid := range pids {
+		cachedCmd, hasCached := pt.cmdCache[pid]
+
 		wg.Add(1)
-		go func(pid int64) {
+		go func(pid int64, cachedCmd string, hasCached bool) {
 			defer wg.Done()
 
 			proc, cputicks, err := readProcess(pid)
 			if err != nil {
 				return //process died - skip silently
 			}
+
+			cmd := cachedCmd
+			if !hasCached {
+				cmdBytes, err := os.ReadFile(fmt.Sprintf("/proc/%d/cmdline", pid))
+				if err == nil && len(cmdBytes) > 0 {
+					cmd = strings.TrimSpace(strings.ReplaceAll(string(cmdBytes), "\x00", " "))
+					if len(cmd) > 50 {
+						cmd = cmd[:49] + "…"
+					}
+				}
+			}
+
+			proc.Cmd = cmd
 			resultCh <- procResult{proc: proc, cpuTicks: cputicks, pid: pid}
-		}(pid)
+		}(pid, cachedCmd, hasCached)
 	}
 
 	go func() {
@@ -82,7 +99,7 @@ func (pt *ProcessTracker) GetProcessList(curCPUTotal float64, sortBy SortBy) ([]
 	}()
 
 	for result := range resultCh {
-
+		pt.cmdCache[result.pid] = result.proc.Cmd
 		if i, ok := pt.prevTicks[result.pid]; ok && deltaTotal > 0 {
 			result.proc.CPU = ((result.cpuTicks - i) / (deltaTotal)) * 100
 		}
@@ -97,6 +114,7 @@ func (pt *ProcessTracker) GetProcessList(curCPUTotal float64, sortBy SortBy) ([]
 	for pid := range pt.prevTicks {
 		if !currentPIDs[pid] {
 			delete(pt.prevTicks, pid)
+			delete(pt.cmdCache, pid)
 		}
 	}
 	sort.Slice(processes, func(i, j int) bool {
@@ -170,5 +188,6 @@ func readProcess(pid int64) (Process, float64, error) {
 func NewProcessTracker() *ProcessTracker {
 	return &ProcessTracker{
 		prevTicks: make(map[int64]float64),
+		cmdCache:  make(map[int64]string),
 	}
 }

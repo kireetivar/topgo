@@ -66,9 +66,10 @@ func loadColor(val float64) lipgloss.Style {
 
 func renderProcessTable(processes []process.Process) string {
 	var builder strings.Builder
+
 	for _, proc := range processes {
-		fmt.Fprintf(&builder, "%-8d %-20s %4s %5d %8.1f %8.1f\n",
-			proc.PID, proc.Name, proc.State, proc.NumThreads, proc.CPU, proc.Mem)
+		fmt.Fprintf(&builder, "%-8d %-20s %4s %5d %8.1f %8.1f   %-s\n",
+			proc.PID, proc.Name, proc.State, proc.NumThreads, proc.CPU, proc.Mem, proc.Cmd)
 	}
 	return builder.String()
 }
@@ -110,7 +111,7 @@ func (m Model) View() string {
 	infoLine := uptimeStr + "    " + loadStr
 
 	visibleRows := m.getVisibleRows()
-	rawHeader := fmt.Sprintf("%-8s %-20s %4s %5s %8s %8s", "PID", "Name", "ST", "THR", "CPU", "MEM")
+	rawHeader := fmt.Sprintf("%-8s %-20s %4s %5s %8s %8s   %-s", "PID", "Name", "ST", "THR", "CPU", "MEM", "CMD")
 	tableHeader := tableHeaderStyle.Render(rawHeader)
 	separator := separatorStyle.Render(strings.Repeat("─", len(rawHeader)))
 	var processTable string

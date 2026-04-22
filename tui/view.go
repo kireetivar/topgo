@@ -2,6 +2,7 @@ package tui
 
 import (
 	"fmt"
+	"runtime"
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
@@ -12,6 +13,9 @@ var (
 	labelStyle = lipgloss.NewStyle().
 			Bold(true).
 			Foreground(lipgloss.Color("#00ffff"))
+
+	infoStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#888888"))
 
 	tableHeaderStyle = lipgloss.NewStyle().
 				Bold(true).
@@ -44,6 +48,20 @@ func renderBar(percent float64, width int) string {
 	filledBar := barColour(percent).Render(strings.Repeat("█", filled))
 	emptyBar := strings.Repeat("░", width-filled)
 	return filledBar + emptyBar
+}
+
+var numCPU = runtime.NumCPU()
+
+func loadColor(val float64) lipgloss.Style {
+	ratio := val / float64(numCPU)
+	switch {
+	case ratio >= 1.0:
+		return lipgloss.NewStyle().Foreground(lipgloss.Color("#ff0000"))
+	case ratio >= 0.7:
+		return lipgloss.NewStyle().Foreground(lipgloss.Color("#ffff00"))
+	default:
+		return lipgloss.NewStyle().Foreground(lipgloss.Color("#00ff00"))
+	}
 }
 
 func renderProcessTable(processes []process.Process) string {
@@ -79,6 +97,18 @@ func (m Model) View() string {
 	swpStats := fmt.Sprintf("%.1f/%.1f GB", usedSwap, m.swapTotal)
 
 	header := fmt.Sprintf("%s [%s] %s\n%s [%s] %s\n%s [%s] %s", label, bar, memStats, swpLabel, swpBar, swpStats, cpuLabel, cpuBar, cpuStats)
+
+	hours := int(m.uptime.Hours())
+	days := hours / 24
+	hours = hours % 24
+	mins := int(m.uptime.Minutes()) % 60
+	uptimeStr := infoStyle.Render(fmt.Sprintf("up %dd %dh %dm", days, hours, mins))
+
+	loadStr := infoStyle.Render("Load: ") + loadColor(m.loadAvg[0]).Render(fmt.Sprintf("%.2f", m.loadAvg[0])) + "  " + loadColor(m.loadAvg[1]).Render(fmt.Sprintf("%.2f", m.loadAvg[1])) + "  " +
+		loadColor(m.loadAvg[2]).Render(fmt.Sprintf("%.2f", m.loadAvg[2]))
+
+	infoLine := uptimeStr + "    " + loadStr
+
 	visibleRows := m.getVisibleRows()
 	rawHeader := fmt.Sprintf("%-8s %-20s %4s %5s %8s %8s", "PID", "Name", "ST", "THR", "CPU", "MEM")
 	tableHeader := tableHeaderStyle.Render(rawHeader)
@@ -94,5 +124,5 @@ func (m Model) View() string {
 		sortIndicator = "mem"
 	}
 	footer := footerStyle.Render(fmt.Sprintf("q: quit  c/m: sort by [%s]", sortIndicator))
-	return lipgloss.JoinVertical(lipgloss.Left, header, "", tableHeader, separator, processTable, footer)
+	return lipgloss.JoinVertical(lipgloss.Left, header, infoLine, "", tableHeader, separator, processTable, footer)
 }

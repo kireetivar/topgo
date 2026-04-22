@@ -7,6 +7,7 @@ import (
 	"github.com/kireetivar/topgo/cpu"
 	"github.com/kireetivar/topgo/memory"
 	"github.com/kireetivar/topgo/process"
+	"github.com/kireetivar/topgo/sysinfo"
 )
 
 type tickMsg time.Time
@@ -17,6 +18,8 @@ type dataMsg struct {
 	totalMemory     float64
 	swapTotal       float64
 	swapUsage       float64
+	uptime          time.Duration
+	loadAvg         [3]float64
 	processes       []process.Process
 }
 
@@ -40,12 +43,22 @@ func (m Model) fetchAllData() tea.Cmd {
 		if err != nil {
 			return errMsg{err: err}
 		}
+		uptime, err := sysinfo.GetUptime()
+		if err != nil {
+			return errMsg{err: err}
+		}
+		load, err := sysinfo.GetLoadAvg()
+		if err != nil {
+			return errMsg{err: err}
+		}
 		return dataMsg{
 			memUsagePercent: memStats.UsagePercentage,
 			cpuUsagePercent: cpuUsage,
 			totalMemory:     memStats.TotalGB,
 			swapUsage:       memStats.SwapPercentage,
 			swapTotal:       memStats.SwapTotalGB,
+			uptime:          uptime,
+			loadAvg:         load,
 			processes:       processes,
 		}
 	}

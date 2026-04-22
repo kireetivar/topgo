@@ -14,6 +14,8 @@ type Model struct {
 	totalMemory     float64
 	swapTotal       float64
 	swapPercentage  float64
+	uptime          time.Duration
+	loadAvg         [3]float64
 	width           int
 	height          int
 	offset          int
@@ -66,6 +68,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.swapPercentage = msg.swapUsage
 		m.swapTotal = msg.swapTotal
 		m.processes = msg.processes
+		m.uptime = msg.uptime
+		m.loadAvg = msg.loadAvg
 		maxOffset := max(len(m.processes)-m.getVisibleRows(), 0)
 		if m.offset > maxOffset {
 			m.offset = maxOffset

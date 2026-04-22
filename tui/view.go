@@ -68,8 +68,13 @@ func renderProcessTable(processes []process.Process) string {
 	var builder strings.Builder
 
 	for _, proc := range processes {
-		fmt.Fprintf(&builder, "%-8d %-20s %4s %5d %8.1f %8.1f   %-s\n",
-			proc.PID, proc.Name, proc.State, proc.NumThreads, proc.CPU, proc.Mem, proc.Cmd)
+		fdDisplay := fmt.Sprintf("%d", proc.FDs)
+		if proc.FDs == -1 {
+			fdDisplay = "-"
+		}
+
+		fmt.Fprintf(&builder, "%-8d %-20s %4s %5d %8.1f %8.1f %4s   %-s\n",
+			proc.PID, proc.Name, proc.State, proc.NumThreads, proc.CPU, proc.Mem, fdDisplay, proc.Cmd)
 	}
 	return builder.String()
 }
@@ -111,7 +116,7 @@ func (m Model) View() string {
 	infoLine := uptimeStr + "    " + loadStr
 
 	visibleRows := m.getVisibleRows()
-	rawHeader := fmt.Sprintf("%-8s %-20s %4s %5s %8s %8s   %-s", "PID", "Name", "ST", "THR", "CPU", "MEM", "CMD")
+	rawHeader := fmt.Sprintf("%-8s %-20s %4s %5s %8s %8s %4s   %-s", "PID", "Name", "ST", "THR", "CPU", "MEM", "FD", "CMD")
 	tableHeader := tableHeaderStyle.Render(rawHeader)
 	separator := separatorStyle.Render(strings.Repeat("─", len(rawHeader)))
 	var processTable string

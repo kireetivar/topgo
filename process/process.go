@@ -17,6 +17,7 @@ type Process struct {
 	Mem        float64
 	NumThreads int
 	Cmd        string
+	FDs        int
 }
 
 type ProcessTracker struct {
@@ -86,6 +87,13 @@ func (pt *ProcessTracker) GetProcessList(curCPUTotal float64, sortBy SortBy) ([]
 						cmd = cmd[:49] + "…"
 					}
 				}
+			}
+
+			fdEntries, err := os.ReadDir(fmt.Sprintf("/proc/%d/fd", pid))
+			if err == nil {
+				proc.FDs = len(fdEntries)
+			} else {
+				proc.FDs = -1 // premission denied
 			}
 
 			proc.Cmd = cmd

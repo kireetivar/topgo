@@ -15,6 +15,8 @@ type dataMsg struct {
 	memUsagePercent float64
 	cpuUsagePercent float64
 	totalMemory     float64
+	swapTotal       float64
+	swapUsage       float64
 	processes       []process.Process
 }
 
@@ -22,7 +24,7 @@ type errMsg struct{ err error }
 
 func (m Model) fetchAllData() tea.Cmd {
 	return func() tea.Msg {
-		memUsage, memTotal, err := memory.GetMemoryUsage()
+		memStats, err := memory.GetMemoryUsage()
 		if err != nil {
 			return errMsg{err: err}
 		}
@@ -39,9 +41,11 @@ func (m Model) fetchAllData() tea.Cmd {
 			return errMsg{err: err}
 		}
 		return dataMsg{
-			memUsagePercent: memUsage,
+			memUsagePercent: memStats.UsagePercentage,
 			cpuUsagePercent: cpuUsage,
-			totalMemory:     memTotal,
+			totalMemory:     memStats.TotalGB,
+			swapUsage:       memStats.SwapPercentage,
+			swapTotal:       memStats.SwapTotalGB,
 			processes:       processes,
 		}
 	}

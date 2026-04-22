@@ -73,7 +73,12 @@ func (m Model) View() string {
 	cpuBar := renderBar(m.cpuUsagePercent, barWidth)
 	cpuStats := fmt.Sprintf("%-16s", fmt.Sprintf("%.1f%%", m.cpuUsagePercent))
 
-	header := fmt.Sprintf("%s [%s] %s\n\n%s [%s] %s", label, bar, memStats, cpuLabel, cpuBar, cpuStats)
+	swpLabel := labelStyle.Render("Swp")
+	swpBar := renderBar(m.swapPercentage, barWidth)
+	usedSwap := (m.swapPercentage / 100) * m.swapTotal
+	swpStats := fmt.Sprintf("%.1f/%.1f GB", usedSwap, m.swapTotal)
+
+	header := fmt.Sprintf("%s [%s] %s\n%s [%s] %s\n%s [%s] %s", label, bar, memStats, swpLabel, swpBar, swpStats, cpuLabel, cpuBar, cpuStats)
 	visibleRows := m.getVisibleRows()
 	rawHeader := fmt.Sprintf("%-8s %-20s %4s %5s %8s %8s", "PID", "Name", "ST", "THR", "CPU", "MEM")
 	tableHeader := tableHeaderStyle.Render(rawHeader)
@@ -89,5 +94,5 @@ func (m Model) View() string {
 		sortIndicator = "mem"
 	}
 	footer := footerStyle.Render(fmt.Sprintf("q: quit  c/m: sort by [%s]", sortIndicator))
-	return lipgloss.JoinVertical(lipgloss.Left, header, tableHeader, separator, processTable, footer)
+	return lipgloss.JoinVertical(lipgloss.Left, header, "", tableHeader, separator, processTable, footer)
 }

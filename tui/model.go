@@ -12,6 +12,8 @@ type Model struct {
 	memUsagePercent float64
 	cpuUsagePercent float64
 	totalMemory     float64
+	swapTotal       float64
+	swapPercentage  float64
 	width           int
 	height          int
 	offset          int
@@ -61,6 +63,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.memUsagePercent = msg.memUsagePercent
 		m.cpuUsagePercent = msg.cpuUsagePercent
 		m.totalMemory = msg.totalMemory
+		m.swapPercentage = msg.swapUsage
+		m.swapTotal = msg.swapTotal
 		m.processes = msg.processes
 		maxOffset := max(len(m.processes)-m.getVisibleRows(), 0)
 		if m.offset > maxOffset {
@@ -75,7 +79,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) getVisibleRows() int {
-	return m.height - 7
+	return m.height - 9
 }
 
 func NewModel() Model {

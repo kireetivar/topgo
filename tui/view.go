@@ -27,6 +27,10 @@ var (
 	footerStyle = lipgloss.NewStyle().
 			Bold(true).
 			Foreground(lipgloss.Color("#555555"))
+
+	errStyle = lipgloss.NewStyle().
+			Bold(true).
+			Foreground(lipgloss.Color("#ff0000"))
 )
 
 func barColour(percent float64) lipgloss.Style {
@@ -85,9 +89,6 @@ func (m Model) View() string {
 	if barWidth < 10 {
 		barWidth = 10
 	}
-	if m.err != nil {
-		return m.err.Error()
-	}
 	label := labelStyle.Render("Mem")
 	bar := renderBar(m.memUsagePercent, barWidth)
 	usedMemory := (m.memUsagePercent / 100) * m.totalMemory
@@ -130,5 +131,9 @@ func (m Model) View() string {
 		sortIndicator = "mem"
 	}
 	footer := footerStyle.Render(fmt.Sprintf("q: quit  c/m: sort by [%s]", sortIndicator))
+
+	if m.err != nil {
+		footer += "   " + errStyle.Render("ERROR: "+m.err.Error())
+	}
 	return lipgloss.JoinVertical(lipgloss.Left, header, infoLine, "", tableHeader, separator, processTable, footer)
 }
